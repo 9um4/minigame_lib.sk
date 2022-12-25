@@ -1,0 +1,185 @@
+#> 게임이 존재하는지 반환
+#> @param game 
+#> @return 
+function isGame(game: text) :: boolean:
+    if {xmas::%{_game}%} is set:
+        return true
+    return false
+
+#> 게임 객체를 생성
+#> @param game 게임 객체 이름
+#> @param display 유저에게 표시 될 게임의 이름
+#> @param maxPlayer 게임에 참가할 수 있는 최대 인원
+#> @param minPlayer 게임을 시작하기 위한 최소 인원
+#> @param minPoint 게임에 참가하기 위해 필요한 최소 포인트
+#> @param maxWaitTime 게임 대기 최대 시간
+#> @param maxGameTime 게임이 지속되는 최대 시간 (-1 : 무제한)
+#> @param isEnabled 게임이 활성화 되어 있는지
+#> @return 
+function createGame(game: text, display: text, maxPlayer: number=8, minPlayer: number=2, minPoint: number=0, maxWaitTime: number=300, maxGameTime: number=600, isEnabled: boolean = false) :: boolean:
+    if isGame({_game}):
+        return false
+    set {xmas::%{_game}%} to {_isEnabled}
+    set {xmas::%{_game}%::display} to {_display}
+    set {xmas::%{_game}%::maxPlayer} to {_maxPlayer}
+    set {xmas::%{_game}%::minPlayer} to {_minPlayer}
+    set {xmas::%{_game}%::minPoint} to 0
+    set {xmas::%{_game}%::maxWaitTime} to {_maxWaitTime}
+    set {xmas::%{_game}%::maxGameTime} to {_maxGameTime}
+    return true
+
+#> 유저에게 표시될 게임의 명칭을 설정
+#> @param game 게임 객체의 이름
+#> @param display 유저에게 표시될 게임의 이름
+function setGameDisplay(game: text, display: text):
+    if isGame({_game}):
+        set {xmas::%{_game}%::display} to {_display}
+
+#> 유저에게 표시될 게임의 명칭을 반환
+#> @param game 게임 객체의 이름
+#> @return 유저에게 표시될 게임 이름
+function getGameDisplay(game: text) :: text:
+    return {xmas::%{_game}%::display}
+
+#> 게임의 최대 플레이어 수를 설정
+#> @param game 
+#> @param maxPlayer 
+function setGameMaxPlayer(game: text, maxPlayer: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::maxPlayer} to {_maxPlayer}
+
+#> 게임의 최대 플레이어 수를 반환
+#> @param game 
+#> @return 
+function getGameMaxPlayer(game: text) :: number:
+    return {xmas::%{_game}%::maxPlayer}
+
+#> 게임의 최소 플레이어 수를 설정
+#> @param game 
+#> @param minPlayer 
+function setGameMinPlayer(game: text, minPlayer: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::minPlayer} to {_minPlayer}
+
+#> 게임의 최소 플레이어 수를 반환
+#> @param game 
+#> @return 
+function getGameMinPlayer(game: text) :: number:
+    return {xmas::%{_game}%::minPlayer}
+
+#> 게임에 참가하기 위해 필요한 최소 포인트 수를 설정
+#> @param game 
+#> @param minPoint 
+function setGameMinPoint(game: text, minPoint: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::minPoint} to {_minPoint}
+
+#> 게임에 참가하기 위해 필요한 최소 포인트 수를 반환
+#> @param game 
+#> @return 
+function getGameMinPoint(game: text) :: number:
+    return {xmas::%{_game}%::minPoint}
+
+#> 최대 게임 대기 시간을 설정
+#> @param game 
+#> @param maxWaitTime 
+function setGameMaxWaitTime(game: text, maxWaitTime: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::maxWaitTime} to {_maxWaitTime}
+
+#> 최대 게임 대기 시간을 설정
+#> @param game 
+#> @return 
+function getGameMaxWaitTime(game: text) :: number:
+    return {xmas::%{_game}%::maxWaitTime}
+
+#> 최대 게임 진행 시간을 설정
+#> @param game 
+#> @param maxGameTime 
+function setGameMaxGameTime(game: text, maxGameTime: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::maxGameTime} to {_maxGameTime}
+
+#> 최대 게임 진행 시간을 반환
+#> @param game 
+#> @return 
+function getGameMaxGameTime(game: text) :: number:
+    return {xmas::%{_game}%::maxGameTime}
+
+#> 등수에 따른 얻는 포인트를 설정
+#> @param game 
+#> @param rank 
+#> @param earnPoint 
+function setGameEarnPoint(game: text, rank: number, earnPoint: number):
+    if isGame({_game}):
+        set {xmas::%{_game}%::earnPoint::%{_rank}%} to {_earnPoint}
+
+#> 게임 등수에 따른 얻을 수 있는 포인트를 반환
+#> @param game 게임 객체의 이름
+#> @param rank 게임 등수
+#> @return 
+function getGameEarnPointRank(game: text, rank: number) :: number:
+    return {xmas::%{_game}%::earnPoint::%{_rank}%}
+
+#> 해당 아레나에서 게임이 진행되고 있는지 반환
+#> @param game 게임 객체의 이름
+#> @param arena 게임 아레나 객체의 이름
+#> @return 
+function isGameArenaPlaying(game: text, arena: text) :: boolean:
+    if {xmas::%{_game}%::arena::%{_arena}%}:
+        if {xmas::%{_game}%::arena::%{_arena}%::user::*} is set:
+            return true
+    return false
+
+#> 해당 게임이 진행중인지 반환
+#> @param game 
+#> @return 
+function isGamePlaying(game: text) :: boolean:
+    loop {xmas::%{_game}%::arena::*}:
+        isGameArenaPlaying({_game}, loop-index)
+    return false
+
+#> 게임 객체를 삭제
+#> @param game 
+function delGame(game: text): #TODO
+    if isGame({_game}):
+        if not isGamePlaying({_game}):
+            delete {xmas::%{_game}%::*}
+
+#> 게임이 비활성화 된 경우 활성화를, 활성화된 경우에는 비활성화 시키는 함수
+#> @param game 
+function toggleGame(game: text):
+    set {xmas::%{_game}%} to not {xmas::%{_game}%}
+    loop {xmas::%{_game}%::arena::*}:
+        set {_arena} to loop-index
+        endQueue( {_game}, {_arena}, true )
+
+#> 게임과 관련한 정보를 채팅에 표시할 수 있는 형식의 리스트로 반환
+#> @param game 
+#> @return 
+function getGameInfo(game:text) :: objects:
+    add "================================================" to {_return::*}
+    if isGame({_game}):
+        add "  게임 이름 : %{_game}%" to {_return::*}
+        add "  활성화 여부 : %{xmas::%{_game}%}%" to {_return::*}
+        add "  표시 이름 : %{xmas::%{_game}%::display}%" to {_return::*}
+        add "  최대 인원 수 : %{xmas::%{_game}%::maxPlayer}%" to {_return::*}
+        add "  최소 인원 수 : %{xmas::%{_game}%::maxPlayer}%" to {_return::*}
+        add "  참가하기 위해 필요한 최소 포인트 : %{xmas::%{_game}%::minPoint}%" to {_return::*}
+        add "  게임 시작 최대 대기 시간 : %{xmas::%{_game}%::maxWaitTime}%" to {_return::*}
+        add "  게임 최대 지속 시간 : %{xmas::%{_game}%::maxGameTime}%" to {_return::*}
+        add "  얻을 수 있는 포인트" to {_return::*}
+        loop {xmas::%{_game}%::earnPoint::*}:
+            add "    - %loop-index%등 : %loop-value% 포인트" to {_return::*}
+        add "  게임 아레나 리스트" to {_return::*}
+        set {_num} to 1
+        loop {xmas::%{_game}%::arena::*}:
+            set {_arena} to loop-index
+            set {_display} to {xmas::%{_game}%::arena::%{_arena}%::display}
+            add "    %{_num}%. %{_arena}% (%{_display}%) - %loop-value%" to {_return::*}
+            add 1 to {_num}
+    else:
+        set {_return::1} to "  게임 이름 : %{_game}%"
+        set {_return::2} to "  그런 게임은 존재하지 않습니다!"
+    add "================================================" to {_return::*}
+    return {_return::*}

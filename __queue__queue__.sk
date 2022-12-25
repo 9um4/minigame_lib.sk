@@ -1,0 +1,247 @@
+options:
+	prefix: <##ffffff>[<##aa0000>연<##00aa00>말<##aa0000>파<##00aa00>티<##ffffff>]
+	isFull: -1
+	alreayJoined: 0
+	success: 1
+
+function isQueue(game:text, arena: text) :: boolean:
+	if {xmas::%{_game}%::arena::%{_arena}%::waitTime} is set:
+		return true
+	return false
+
+function allocateArena(game:text) :: text:
+	set {_maxPop} to 0
+	loop {xmas::%{_game}%::arena::*}:
+		# 만약 현재 순회 아레나에 대기열이 존재하지 않으면
+		if {xmas::%{_game}%::arena::%{_temp}%::waitPop} is not set:
+			# 만약 현재 순회 아레나에서 게임이 진행되지 않고 있으면
+			if not isGameArenaPlaying( {_game}, {_temp} ):
+				# 만약 {_arena}가 비어있으면
+				if {_arena} is not set:
+					# {_arena}에 현재 순회 아레나의 이름을 넣는다
+					set {_arena} to loop-index
+		# 만약 현재 순회 아레나에 대기열이 존재하면
+		else:
+			# 만약 현재 순회 아레나의 대기 인원이 최대 참가 인원보다 작다면
+			if {xmas::%{_game}%::arena::%{_temp}%::waitPop} < {xmas::%{_game}%::maxPlayer}:
+				# 만약 현재 순회 아레나의 대기 인원이 {_maxPop}보다 크다면
+				if {xmas::%{_game}%::arena::%{_temp}%::waitPop} > {_maxPop}:
+					# {_arena}에 현재 순회 아레나의 이름을 넣는다
+					set {_arena} to loop-index
+					# {_maxPop}의 수를 현재 순회 아레나의 대기 인원 수로 정한다
+					set {_maxPop} to {xmas::%{_game}%::arena::%{_temp}%::waitPop}
+	# {_arena}가 존재하는 경우
+	if {_arena} is set:
+		#{_arena} 반환
+		return {_arena}
+	return "<none>"
+
+function enQueue(game:text, player: offlineplayer) :: number:
+	# 만약 플레이어가 게임에 참가중이거나 대기중이 아니면
+	if canEnQueue( {_player} ):
+		# 해당 게임의 아레나를 할당받는다
+		set {_arena} to allocateArena({_game})
+		if {_arena} is not "<none>":
+			# 만약 해당 게임의 아레나가 대기열이 존재하지 않으면
+			if not isQueue({_game}, {_arena}):
+				# 대기열을 생성한다
+				createQueue({_game}, {_arena})
+				manageQueue({_game}, {_arena})
+			# 대기열에 참가한다
+			add {_player} to {xmas::%{_game}%::arena::%{_arena}%::queue::*}
+			add 1 to {xmas::%{_game}%::arena::%{_arena}%::waitPop}
+			set {xmas::user::waiting::game::%{_player}%} to {_game}
+			set {xmas::user::waiting::arena::%{_player}%} to {_arena}
+			return {@success}
+
+function outQueue(game: text, player: offlineplayer) :: boolean:
+	if isWaitGame({_player}):
+		set {_arena} to {xmas::user::waiting::arena::%{_player}%}
+		loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+			if loop-value is {_player}:
+				delete {xmas::%{_game}%::arena::%{_arena}%::queue::%loop-index%}
+				subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::waitPop}
+				reduceList("%{_game}%::arena::%{_arena}%::queue")
+				return true
+	return false
+
+function createQueue(game:text, arena:text):
+	if not isQueue({_game}, {_arena}):
+		set {xmas::%{_game}%::arena::%{_arena}%::waitTime} to {xmas::%{_game}%::maxWaitTime}
+		set {xmas::%{_game}%::arena::%{_arena}%::waitPop} to 0
+		delete {xmas::%{_game}%::arena::%{_arena}%::queue::*}
+
+function manageQueue(game: text, arena: text):
+	while true:
+		wait 1 second
+		if {xmas::%{_game}%::arena::%{_arena}%::waitPop} is not set:
+			endQueue({_game}, {_arena})
+			exit
+		else if {xmas::%{_game}%::arena::%{_arena}%::waitPop} is {xmas::%{_game}%::maxPlayer}:
+			readyGame({_game}, {_arena})
+			exit
+		else if {xmas::%{_game}%::arena::%{_arena}%::waitTime} is 5:
+			if {xmas::%{_game}%::arena::%{_arena}%::waitPop} >= {xmas::%{_game}%::minPlayer}:
+				readyGame({_game}, {_arena})
+				exit
+			else if {xmas::%{_game}%::arena::%{_arena}%::waitPop} is set:
+				loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+					sendMessage( loop-value, "{@prefix} 플레이어가 부족해 게임을 시작할 수 없습니다!" )
+					sendMessage( loop-value, "{@prefix} 남은 대기 시간이 초기화 됩니다!" )
+				set {xmas::%{_game}%::arena::%{_arena}%::waitTime} to {xmas::%{_game}%::maxWaitTime}
+				manageQueue({_game}, {_arena})
+				exit
+			else:
+				endQueue({_game}, {_arena})
+				exit
+		else:
+			subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+
+function endQueue(game: text, arena: text, announce: boolean=false):
+	delete {xmas::system::waitGame::%{_game}%::%{_arena}%}
+	delete {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+	loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+		if {_announce}:
+			sendMessage( loop-value, "{@prefix} 대기열이 삭제되었습니다. 다시 참가해 주세요." )
+		delete {xmas::user::waiting::game::%loop-value%}
+		delete {xmas::user::waiting::arena::%loop-value%}
+	delete {xmas::%{_game}%::arena::%{_arena}%::queue::*}
+	delete {xmas::%{_game}%::arena::%{_arena}%::waitPop}
+
+function readyGame(game:text, arena:text):
+	set {xmas::%{_game}%::arena::%{_arena}%::waitTime} to 5
+	loop 5 times:
+		loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+			sendMessage( loop-value-2, "{@prefix} %{xmas::%{_game}%::display}% 시작까지 %{xmas::%{_game}%::arena::%{_arena}%::waitTime}%초 남았습니다!" )
+		subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+		wait 1 second
+	if {xmas::%{_game}%::arena::%{_arena}%::waitPop} >= {xmas::%{_game}%::minPlayer}:
+		loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+			sendMessage( loop-value, "{@prefix} %{xmas::%{_game}%::display}%가 %{xmas::%{_game}%::arena::%{_arena}%::display}%에서 시작합니다!" )
+		delete {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+		enGame({_game}, {_arena})
+		exit
+	else if {xmas::%{_game}%::arena::%{_arena}%::waitPop} is set:
+		loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+			sendMessage( loop-value, "{@prefix} 플레이어가 부족해 게임을 시작할 수 없습니다!" )
+			sendMessage( loop-value, "{@prefix} 남은 대기 시간이 초기화 됩니다!" )
+		delete {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+		manageQueue({_game}, {_arena})
+		exit
+	else:
+		endQueue({_game}, {_arena})
+		exit
+
+function enGame(game: text, arena: text) :: boolean: # TODO
+	if {xmas::%{_game}%::arena::%{_arena}%::spawnType} is 1:
+		set {_shuffledList::*} to shuffledNumList({xmas::%{_game}%::arena::%{_arena}%::spawnLocNum})
+	else if {xmas::%{_game}%::arena::%{_arena}%::spawnType} is 2:
+		loop {xmas::%{_game}%::arena::%{_arena}%::waitPop} times:
+			add loop-number to {_shuffledList::*}
+	loop {xmas::%{_game}%::arena::%{_arena}%::queue::*}:
+		set {_user} to loop-value
+		delete {xmas::user::waiting::game::%{_user}%}
+		delete {xmas::user::waiting::arena::%{_user}%}
+		set {xmas::user::joining::game::%{_user}%} to {_game}
+		set {xmas::user::joining::arena::%{_user}%} to {_arena}
+		set {xmas::%{_game}%::arena::%{_arena}%::user::%{_user}%} to true
+		add 1 to {xmas::%{_game}%::arena::%{_arena}%::userNum}
+		teleport {_user} to {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::%{_shuffledList::%loop-index%}%}
+		sendMessage( {_user}, "아레나 %{xmas::%{_game}%::arena::%{_arena}%::display}%에서 %{xmas::%{_game}%::display}%이 시작됩니다!" )
+	set {xmas::%{_game}%::arena::%{_arena}%::gameTime} to {xmas::%{_game}%}
+	manageGame({_game}, {_arena})
+	endQueue({_game}, {_arena})
+	execute console command "/%{_game}% init %{_arena}%"
+
+function manageGame(game: text, arena: text):
+	# 무한 반복
+	while true:
+		# 1초 대기
+		wait 1 second
+		# 게임 시간이 마무리 되었으면
+		if {xmas::%{_game}%::arena::%{_arena}%::gameTime} is 0:
+			# 게임을 종료한다
+			endGame({_game}, {_arena})
+			# 분기를 나간다
+			exit
+		# 그렇지 않고 생존자가 한 명이면
+		else if {xmas::%{_game}%::arena::%{_arena}%::userNum} is 1:
+			# 게임을 종료한다
+			endGame({_game}, {_arena})
+			# 분기를 나간다
+			exit
+		# 모두 아니라면
+		else:
+			# 만약 이 게임이 제한 시간이 존재한다면
+			if {xmas::%{_game}%::arena::%{_arena}%::maxGameTime} is not -1:
+				# 남은 시간을 1초 차감한다
+				subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::gameTime}
+
+function endGame(game: text, arena: text):
+	# 게임이 종료되었고 결과를 참가한 플레이어들에게 알린다.
+	loop {xmas::%{_game}%::arena::%{_arena}%::user::*}:
+		set {_player} to loop-index parsed as offlineplayer
+		sendMessage( {_player}, "=======================================================" )
+		sendMessage( {_player}, "" )
+		sendMessage( {_player}, "게임이 종료되었습니다!" )
+		sendMessage( {_player}, "  미니게임 이름 : %{xmas::%{_game}%::display}%" )
+		sendMessage( {_player}, "  경기장 이름 : %{xmas::%{_game}%::arena::%{_arena}%::display}%" )
+		sendMessage( {_player}, "" )
+		sendMessage( {_player}, "경기 결과" )
+		loop {xmas::%{_game}%::earnPoint::*}:
+			sendMessage( {_player}, "  %loop-index-2%등 : %{xmas::%{_game}%::arena::%{_arena}%::rank::%loop-index-2%}%  (%loop-value-2%포인트)" )
+		sendMessage( {_player}, "" )
+		sendMessage( {_player}, "{@prefix} 이번 게임에서 %{xmas::%{_game}%::arena::%{_arena}%::rank::%{_player}%}%등 했습니다!" )
+		sendMessage( {_player}, "" )
+		sendMessage( {_player}, "=======================================================" )
+		if isJoinGame({_player}):
+			outGame({_game}, {_arena}, {_player})
+	# 게임 관련 변수를 모두 제거한다
+
+function outGame(game: text, arena: text, player: offlineplayer):
+	# 이번 게임의 등수와 얻은 포인트를 안내한다.
+	set {_rank} to getPlayerRank({_game}, {_arena}, {_player})
+	set {_point} to getRankEarnPoint({_game}, {_rank})
+	sendMessage( {_player}, "{@prefix} 이번 게임에서 %{_rank}%등 했습니다! (%{_point}% 포인트 획득!)" )
+	# 이번 게임으로 얻은 포인트를 준다.
+	addPoint({_player}, {_point})
+	# 활성화 플레이어 리스트에서 플레이어를 제거한다.
+	delete {xmas::user::joining::game::%{_player}%}
+	delete {xmas::user::joining::arena::%{_player}%}
+	# 플레이어를 로비 스폰으로 보낸다
+	set {_loc} to getWorldDefaultSpawn("world")
+	teleport {_player} to {_loc}
+	
+
+function elimGame(game: text, arena: text, player: offlineplayer):
+	teleport {_player} to {xmas::%{_game}%::arena::%{_arena}%::specLoc}
+	set {xmas::%{_game}%::arena::%{_arena}%::user::%{_user}%} to false
+	set {xmas::%{_game}%::arena::%{_arena}%::rank::%{_user}%} to {xmas::%{_game}%::arena::%{_arena}%::userNum}
+	set {xmas::%{_game}%::arena::%{_arena}%::rank::%{xmas::%{_game}%::arena::%{_arena}%::userNum}%} to {_user}
+	subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::userNum}
+	loop {xmas::%{_game}%::arena::%{_arena}%::user::*}:
+		set {_player} to loop-index parsed as offlineplayer
+		sendMessage( {_player}, "{@prefix} &a%{_user}%&f님이 게임에서 탈락하셨습니다! 남은 인원 : %{xmas::%{_game}%::arena::%{_arena}%::userNum}%명" )
+	set gamemode of {_user} to spectator
+
+function getPlayerRank(game: text, arena: text, player: offlineplayer) :: number:
+	return {xmas::%{_game}%::arena::%{_arena}%::rank::%{_user}%}
+
+function getRankPlayer(game: text, arena: text, rank: number) :: offlineplayer:
+	return {xmas::%{_game}%::arena::%{_arena}%::rank::%{_rank}%}
+
+function getRankEarnPoint(game: text, rank: number) :: number:
+	if {xmas::%{_game}%::earnPoint::%{_rank}%} is not set:
+		return 0
+	return {xmas::%{_game}%::earnPoint::%{_rank}%}
+
+on quit:
+	if isJoinGame( player ):
+		set {_game} to {xmas::user::joining::game::%{_player}%}
+		set {_arena} to {xmas::user::joining::arena::%{_player}%}
+		elimGame( {_game}, {_arena}, player )
+		outGame( {_game}, {_arena}, player )
+	else if isWaitGame( player ):
+		set {_game} to {xmas::user::waiting::game::%{_player}%}
+		set {_arena} to {xmas::user::waiting::arena::%{_player}%}
+		outQueue( {_game}, player )

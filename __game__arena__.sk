@@ -1,0 +1,107 @@
+#> 게임 아레나가 존재하는지 반환
+#> @param game 게임 객체 이름
+#> @param arena 게임 아레나 객체 이름
+#> @return 
+function isGameArena(game: text, arena: text) :: boolean:
+    if {xmas::%{_game}%::arena::%{_arena}%} is set:
+        return true
+    return false
+
+function getGameArena(player: offlineplayer) :: text:
+    return {xmas::user::joining::arena::%{_player}%}
+
+#> 게임 아레나 객체를 생성
+#> @param game 게임 객체의 이름
+#> @param arena 게임 아레나 객체의 이름
+#> @param enable 게임 아레나 활성화 여부
+#> @param display 유저에게 보여질 게임 아레나 이름
+#> @param spawnType 게임 시작시 플레이어들이 생성될 유형
+function createGameArena(game: text, arena: text, enable: boolean, display: text, spawnType: number):
+    if not isGameArena({_game}, {_arena}):
+        set {xmas::%{_game}%::arena::%{_arena}%} to {_enable}
+        set {xmas::%{_game}%::arena::%{_arena}%::display} to {_display}
+        set {xmas::%{_game}%::arena::%{_arena}%::spawnType} to {_spawnType}
+        delete {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+        delete {xmas::%{_game}%::arena::%{_temp}%::waitPop}
+        delete {xmas::%{_game}%::arena::%{_arena}%::queue::*}
+        set {xmas::%{_game}%::arena::%{_arena}%::spawnLocNum} to 0
+        delete {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::*}
+        delete {xmas::%{_game}%::arena::%{_arena}%::specLoc}
+        delete {xmas::%{_game}%::arena::%{_arena}%::gameTime}
+        delete {xmas::%{_game}%::arena::%{_arena}%::user::*}
+        delete {xmas::%{_game}%::arena::%{_arena}%::userNum}
+        delete {xmas::%{_game}%::arena::%{_arena}%::rank::*}
+
+#> 게임 아레나 객체를 삭제
+#> @param game 
+#> @param arena 
+function deleteGameArena(game: text, arena: text):
+    if isGameArena( {_game}, {_arena} ):
+        if not isGameArenaPlaying( {_game}, {_arena} ):
+            endQueue( {_game}, {_arena}, true )
+            delete {xmas::%{_game}%::arena::%{_arena}%}
+            delete {xmas::%{_game}%::arena::%{_arena}%::display::*}
+
+function toggleGameArena(game: text, arena: text):
+    set {xmas::%{_game}%::arena::%{_arena}%} to not {xmas::%{_game}%::arena::%{_arena}%}
+
+function isGameArenaAvailable(game: text, arena: text) :: boolean:
+    return {xmas::%{_game}%::arena::%{_arena}%}
+
+function setGameArenaDisplay(game: text, arena: text, display: text):
+    set {xmas::%{_game}%::arena::%{_arena}%::display} to {_display}
+
+function getGameArenaDisplay(game: text, arena: text) :: text:
+    return {xmas::%{_game}%::arena::%{_arena}%::display}
+
+function setGameArenaSpawnType(game: text, arena: text, spawnType: number):
+    set {xmas::%{_game}%::arena::%{_arena}%::spawnType} to {_spawnType}
+
+function getGameArenaSpawnType(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::spawnType}
+
+function setGameArenaWaitingTime(game: text, arena: text, waitTime: number):
+    set {xmas::%{_game}%::arena::%{_arena}%::waitTime} to {_waitTime}
+
+function getGameArenaWaitingTime(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::waitTime}
+
+function getGameArenaWaitPlayerAmount(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::waitPop}
+
+function getGameArenaWaitPlayerList(game: text, arena: text) :: objects:
+    return {xmas::%{_game}%::arena::%{_arena}%::queue::*}
+
+function getGameArenaSpawnLocationAmount(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::spawnLocNum}
+
+function getGameArenaSpawnLocationList(game: text, arena: text) :: objects:
+    return {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::*}
+
+function appendGameArenaSpawnLocation(game: text, arena: text, loc: location):
+    if {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::*} does not contain {_loc}:
+        add {_loc} to {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::*}
+        add 1 to {xmas::%{_game}%::arena::%{_arena}%::spawnLocNum}
+
+function deleteGameArenaSpawnLocation(game: text, arena: text, index: number):
+    delete {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::%{_index}%}
+    subtract 1 from {xmas::%{_game}%::arena::%{_arena}%::spawnLocNum}
+    reduceList("%{_game}%::arena::%{_arena}%::spawnLoc")
+
+function setGameArenaSpawnLocation(game: text, arena: text, index: number, loc: location):
+    set {xmas::%{_game}%::arena::%{_arena}%::spawnLoc::%{_index}%} to {_loc}
+
+function getGameArenaSpectateLocation(game: text, arena: text) :: location:
+    return {xmas::%{_game}%::arena::%{_arena}%::specLoc}
+
+function setGameArenaSpectateLocation(game: text, arena: text, loc: location):
+    set {xmas::%{_game}%::arena::%{_arena}%::specLoc} to {_loc}
+
+function getGameArenaGameTime(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::gameTime}
+
+function getGameArenaSurvivorList(game: text, arena: text) :: objects:
+    return {xmas::%{_game}%::arena::%{_arena}%::user::*}
+
+function getGameArenaSurvivorAmount(game: text, arena: text) :: number:
+    return {xmas::%{_game}%::arena::%{_arena}%::userNum}

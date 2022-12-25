@@ -1,0 +1,11 @@
+#> 월드에서 스폰할 기본 위치 지정
+#> @param world 
+#> @param loc 
+function setWorldDefaultSpawn(world: world, loc: location):
+    set {xmas::system::defaultSpawn::%{_world}%} to {_loc}
+
+#> 월드에서 스폰할 기본 위치 반환
+#> @param world 
+#> @return 
+function getWorldDefaultSpawn(world: world) :: location:
+    return {xmas::system::defaultSpawn::%{_world}%}

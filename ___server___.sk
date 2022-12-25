@@ -1,0 +1,10 @@
+on join:
+    if {xmas::system::online} is not set:
+        set {xmas::system::online} to true
+
+on quit:
+    if number of all players is 0:
+        delete {xmas::system::online}
+
+on unload:
+    delete {xmas::system::online}

@@ -1,0 +1,36 @@
+#> 플레이어가 게임 대기열에 참가할 수 있는지 반환
+#> @param player 
+#> @return 
+function canEnQueue(player: offlineplayer) :: boolean:
+    if {xmas::user::waiting::game::%{_player}%} is set:
+        return false
+    if {xmas::user::joining::game::%{_player}%} is set:
+        return false
+    return true
+#> 플레이어가 현재 게임에 참여중인지 반환
+#> @param player 
+#> @return 
+function isJoinGame(player: offlineplayer) :: boolean:
+    if {xmas::user::joining::game::%{_player}%} is set:
+        return true
+    return false
+
+#> 플레이어가 현재 게임 대기중인지 반환
+#> @param player 
+#> @return 
+function isWaitGame(player: offlineplayer) :: boolean:
+    if {xmas::user::waiting::game::%{_player}%} is set:
+        return true
+    return false
+
+#> 플레이어가 참가 중인 게임 이름 반환
+#> @param player 
+#> @return 
+function getJoinGame(player: offlineplayer) :: text:
+    return {xmas::user::joining::game::%{_player}%}
+
+#> 플레이어가 대기 중인 게임 이름 반환
+#> @param player 
+#> @return 
+function getWaitGame(player: offlineplayer) :: text:
+    return {xmas::user::waiting::game::%{_player}%}
