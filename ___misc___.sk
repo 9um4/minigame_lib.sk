@@ -1,0 +1,81 @@
+#> 리스트 내에서 인덱스가 숫자인 것들 중에서 중간에 빈 부분을 제거하는 함수
+#> @param listName : 리스트 이름 ({xmas::<리스트 이름>::*}인 리스트에 접근합니다.)
+function reduceList(listName: text):
+    set {_index} to 1
+    loop {xmas::%{_listName}%::*}:
+        set {xmas::%{_listName}%::%{_index}%} to loop-value
+
+#> 1부터 max 값까지 순서가 섞인 리스트를 반환합니다.
+#> @param max 반환될 리스트의 최대 값
+#> @return 순서가 섞인 리스트
+function shuffledNumList(max: number) :: objects:
+    loop {_max} times:
+        add loop-number to {_list::*}
+    loop {_max} - 1 times:
+        # 현재 인덱스를 포함한 마지막까지 중에서 랜덤적으로 뽑는다.
+        set {_j} to random integer between loop-number and {_max}
+        # 서로 교체한다
+        set {_ai} to {_list::%loop-number%}
+        set {_list::%loop-number%} to {_list::%{_j}%} 
+        set {_list::%{_j}%} to {_ai} 
+    return {_list::*}
+
+#> UUID 기반으로 저장될 데이터를 생성합니다.
+#> @param dataName 데이터 이름 (유일해야 합니다)
+function createUData(dataName: text):
+    if {xmas::system::uData::*} do not contain {_dataName}:
+        add {_dataName} to {xmas::system::uData::*}
+
+#> UData의 데이터명을 리스트로 반환합니다.
+#> @return 
+function getUDataList() :: objects:
+    return {xmas::system::uData::*}
+
+#> UUID와 대응되는 닉네임이 최신화가 되었는지 확인합니다.
+#> @param player UUID를 체크할 플레이어
+function checkNickname(player: offlineplayer):
+    set {_uuid} to uuid of {_player}
+    if {xmas::system::uuid::%{_uuid}%} is set:
+        if {xmas::system::uuid::%{_uuid}%} is {_player}:
+            exit
+    set {xmas::system::uuid::%{_uuid}%} to {_player}
+
+#> UUID를 플레이어로 반환
+#> @param uuid 플레이어의 uuid
+#> @return 플레이어
+function uuidToPlayer(uuid: text) :: offlineplayer:
+    return {xmas::system::uuid::%{_uuid}%}
+
+#> 온라인인 플레이어에게만 메시지 전송
+#> @param player 
+#> @param message 
+function sendMessage(player: offlineplayer, message: text):
+    if {_player} is online:
+        send {_message} to {_player}
+
+#> 
+#> @param player 
+#> @param message 
+function sendGeneralMessage(player: offlineplayer, message: text):
+    if {_player} is online:
+        send "<##ffffff>[<##aa0000>연<##00aa00>말<##aa0000>파<##00aa00>티<##ffffff>] %{message}%" to {_player}
+
+#> 
+#> @param player 
+#> @param message 
+function sendWarningMessage(player: offlineplayer, message: text):
+    if {_player} is online:
+        send "<##ffffff>[<##aa0000>경고<##ffffff>] <##aa0000>%{_message}%" to {_player}
+
+#> 
+#> @param player 
+#> @param message 
+function sendInfoMessage(player: offlineplayer, message: text):
+    if {_player} is online:
+        send "<##ffffff>[<##00aa00>안내<##ffffff>] %{_message}%" to {_player}
+
+on join:
+    checkNickname(player)
+
+on quit:
+    checkNickname(player)
